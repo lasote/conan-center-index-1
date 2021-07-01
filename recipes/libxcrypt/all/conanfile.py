@@ -1,6 +1,8 @@
 import os
-from conans import AutoToolsBuildEnvironment, ConanFile, tools
+from conans import ConanFile, tools
 from conans.errors import ConanInvalidConfiguration
+from conan.tools.gnu import Autotools, AutotoolsToolchain, AutotoolsDeps
+from conan.tools.env import VirtualBuildEnv
 
 
 class LibxcryptConan(ConanFile):
@@ -19,12 +21,14 @@ class LibxcryptConan(ConanFile):
         "shared": False,
         "fPIC": True,
     }
+    apply_env = False
+    win_shell = True
 
-    _autotools = None
+    def build_requirements(self):
+        self.build_requires("libtool/2.4.6")
 
-    @property
-    def _source_subfolder(self):
-        return os.path.join(self.source_folder, "source_subfolder")
+    def layout(self):
+        self.folders.source = "{}-{}".format(self.name, self.version)
 
     def config_options(self):
         if self.settings.os == "Windows":
@@ -38,18 +42,8 @@ class LibxcryptConan(ConanFile):
         if self.options.shared:
             del self.options.fPIC
 
-    def source(self):
-        tools.get(**self.conan_data["sources"][self.version])
-        os.rename("{}-{}".format(self.name, self.version), self._source_subfolder)
-
-    def build_requirements(self):
-        self.build_requires("libtool/2.4.6")
-
-    def _configure_autotools(self):
-        if self._autotools:
-            return self._autotools
-        self._autotools = AutoToolsBuildEnvironment(self, win_bash=tools.os_info.is_windows)
-        self._autotools.libs = []
+    def generate(self):
+        toolchain = AutotoolsToolchain(self)
         conf_args = [
             "--disable-werror",
         ]
@@ -57,22 +51,32 @@ class LibxcryptConan(ConanFile):
             conf_args.extend(["--enable-shared", "--disable-static"])
         else:
             conf_args.extend(["--disable-shared", "--enable-static"])
-        self._autotools.configure(args=conf_args, configure_dir=self._source_subfolder)
-        if self.settings.os == "Windows":
-            tools.replace_in_file("libtool", "-DPIC", "")
-        return self._autotools
+        toolchain.configure_args.extend(conf_args)
+        toolchain.generate()
+
+        deps = AutotoolsDeps(self)
+        deps.generate()
+
+        env_deps = VirtualBuildEnv(self)
+        env_deps.generate()
+
+    def source(self):
+        tools.get(**self.conan_data["sources"][self.version])
 
     def build(self):
-        tools.replace_in_file(os.path.join(self._source_subfolder, "Makefile.am"),
+        tools.replace_in_file(os.path.join(self.source_folder, "Makefile.am"),
                               "\nlibcrypt_la_LDFLAGS = ", "\nlibcrypt_la_LDFLAGS = -no-undefined ")
-        with tools.chdir(self._source_subfolder):
-            self.run("{} -fiv".format(tools.get_env("AUTORECONF")), win_bash=tools.os_info.is_windows)
-        autotools = self._configure_autotools()
+        with tools.chdir(self.source_folder):
+            self.run("autoreconf -fiv")
+        autotools = Autotools(self)
+        autotools.configure()
+        if self.settings.os == "Windows":
+            tools.replace_in_file("libtool", "-DPIC", "")
         autotools.make()
 
     def package(self):
-        self.copy("COPYING.LIB", src=self._source_subfolder, dst="licenses")
-        autotools = self._configure_autotools()
+        self.copy("COPYING.LIB", src=self.source_folder, dst="licenses")
+        autotools = Autotools(self)
         autotools.install()
 
         os.unlink(os.path.join(self.package_folder, "lib", "libcrypt.la"))

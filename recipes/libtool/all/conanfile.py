@@ -56,7 +56,8 @@ class LibtoolConan(ConanFile):
 
     @contextmanager
     def _build_context(self):
-        with tools.environment_append(self._libtool_relocatable_env):
+        env_unix = {k: tools.unix_path(v) for k,v in self._libtool_relocatable_env.items()}
+        with tools.environment_append(env_unix):
             if self.settings.compiler == "Visual Studio":
                 with tools.vcvars(self.settings):
                     with tools.environment_append({"CC": "cl -nologo", "CXX": "cl -nologo",}):
@@ -193,11 +194,11 @@ class LibtoolConan(ConanFile):
     @property
     def _libtool_relocatable_env(self):
         return {
-            "LIBTOOL_PREFIX": tools.unix_path(self.package_folder),
-            "LIBTOOL_DATADIR": tools.unix_path(self._datarootdir),
-            "LIBTOOL_PKGAUXDIR": tools.unix_path(os.path.join(self._datarootdir, "libtool", "build-aux")),
-            "LIBTOOL_PKGLTDLDIR": tools.unix_path(os.path.join(self._datarootdir, "libtool")),
-            "LIBTOOL_ACLOCALDIR": tools.unix_path(os.path.join(self._datarootdir, "aclocal")),
+            "LIBTOOL_PREFIX": self.package_folder,
+            "LIBTOOL_DATADIR": self._datarootdir,
+            "LIBTOOL_PKGAUXDIR": os.path.join(self._datarootdir, "libtool", "build-aux"),
+            "LIBTOOL_PKGLTDLDIR": os.path.join(self._datarootdir, "libtool"),
+            "LIBTOOL_ACLOCALDIR": os.path.join(self._datarootdir, "aclocal"),
         }
 
     def package_info(self):
@@ -216,16 +217,22 @@ class LibtoolConan(ConanFile):
 
         bin_ext = ".exe" if self.settings.os == "Windows" else ""
 
-        libtoolize = tools.unix_path(os.path.join(self.package_folder, "bin", "libtoolize" + bin_ext))
-        self.output.info("Setting LIBTOOLIZE env to {}".format(libtoolize))
-        self.env_info.LIBTOOLIZE = libtoolize
+        libtoolize_path = os.path.join(self.package_folder, "bin", "libtoolize" + bin_ext)
+        self.output.info("Setting LIBTOOLIZE env to {}".format(tools.unix_path(libtoolize_path)))
+        self.env_info.LIBTOOLIZE = tools.unix_path(libtoolize_path)
 
         for key, value in self._libtool_relocatable_env.items():
             self.output.info("Setting {} environment variable to {}".format(key, value))
-            setattr(self.env_info, key, value)
+            setattr(self.env_info, key, tools.unix_path(value))
+            self.buildenv_info.define_path(key, value)
 
-        libtool_aclocal = tools.unix_path(os.path.join(self.package_folder, "bin", "share", "aclocal"))
-        self.output.info("Appending ACLOCAL_PATH env: {}".format(libtool_aclocal))
-        self.env_info.ACLOCAL_PATH.append(libtool_aclocal)
-        self.output.info("Appending AUTOMAKE_CONAN_INCLUDES environment variable: {}".format(libtool_aclocal))
-        self.env_info.AUTOMAKE_CONAN_INCLUDES.append(libtool_aclocal)
+        libtool_aclocal_path = os.path.join(self.package_folder, "bin", "share", "aclocal")
+        self.output.info("Appending ACLOCAL_PATH env: {}".format(tools.unix_path(libtool_aclocal_path)))
+        self.env_info.ACLOCAL_PATH.append(tools.unix_path(libtool_aclocal_path))
+        self.output.info("Appending AUTOMAKE_CONAN_INCLUDES environment variable: {}".format(tools.unix_path(libtool_aclocal_path)))
+        self.env_info.AUTOMAKE_CONAN_INCLUDES.append(tools.unix_path(libtool_aclocal_path))
+
+        self.buildenv_info.append_path("PATH", bin_path)
+        self.buildenv_info.define_path("LIBTOOLIZE", libtoolize_path)
+        self.buildenv_info.append_path("ACLOCAL_PATH", libtool_aclocal_path)
+        self.buildenv_info.append_path("AUTOMAKE_CONAN_INCLUDES", libtool_aclocal_path)

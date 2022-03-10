@@ -1,27 +1,41 @@
-from conans import CMake, tools, ConanFile
+from conan import ConanFile
+from conan.tools.cmake import cmake_layout, CMake, CMakeToolchain
+from conan.tools.build import cross_building
 import os
 
 
 class TestPackageConan(ConanFile):
     settings = "os", "compiler", "arch", "build_type"
-    generators = "cmake", "cmake_find_package", "pkg_config"
+    generators = "CMakeDeps", "PkgConfigDeps"
+
+    def layout(self):
+        cmake_layout(self)
+
+    def requirements(self):
+        self.requires(self.tested_reference_str)
+
+    def generate(self):
+        toolchain = CMakeToolchain(self)
+        toolchain.variables["OPENSSL_WITH_ZLIB"] = not self.dependencies["openssl"].options.no_zlib
+        if self.settings.os == "Android":
+            toolchain.variables["CONAN_LIBCXX"] = ""
+        toolchain.generate()
+        # FIXME: smell of root package
+        license_path = os.path.join(self.dependencies["openssl"].cpp_info.libdirs[0], "..", "licenses", "LICENSE.txt")
+        assert os.path.exists(license_path)
 
     def build(self):
         cmake = CMake(self)
-        cmake.definitions["OPENSSL_WITH_ZLIB"] = not self.options["openssl"].no_zlib
-        if self.settings.os == "Android":
-            cmake.definitions["CONAN_LIBCXX"] = ""
         cmake.configure()
         cmake.build()
 
     def test(self):
-        if not tools.cross_building(self):
-            bin_path = os.path.join("bin", "digest")
-            self.run(bin_path, run_environment=True)
+        if not cross_building(self):
+            bin_path = os.path.join(self.cpp.build.bindirs[0], "digest")
+            self.run(bin_path)
 
-            if not self.options["openssl"].no_stdio:
-                self.run("openssl version", run_environment=True)
-        assert os.path.exists(os.path.join(self.deps_cpp_info["openssl"].rootpath, "licenses", "LICENSE.txt"))
+            if not self.dependencies["openssl"].options.no_stdio:
+                self.run("openssl version")
 
         for fn in ("libcrypto.pc", "libssl.pc", "openssl.pc",):
-            assert os.path.isfile(os.path.join(self.build_folder, fn))
+            assert os.path.isfile(os.path.join(self.generators_folder, fn))

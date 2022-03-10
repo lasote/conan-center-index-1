@@ -102,16 +102,14 @@ class OpenSSLConan(ConanFile):
         return os.path.join(self.generators_folder, "openssl_build.json")
 
     def generate(self):
-        configure_args = self._get_configure_args()
-        build_data = {"configure_args": configure_args}
-        perl = None
         if self.settings_build.os == "Windows" and not self.win_bash:
             # enforce strawberry perl, otherwise wrong perl could be used (from Git bash, MSYS, etc.)
-            if "strawberryperl" in self.dependencies:
+            if "strawberryperl" in self.dependencies.items():
                 perl = os.path.join(self.dependencies["strawberryperl"].bindirs[0], "perl.exe")
             else:
                 perl = "perl"
-        build_data["perl_exe"] = perl
+        configure_args = self._get_configure_args(perl)
+        build_data = {"configure_args": configure_args, "perl_exe": perl}
         contents = json.dumps(build_data)
         save(self, self._openssl_build_json_path, contents)
         if self._use_nmake:
@@ -132,6 +130,14 @@ class OpenSSLConan(ConanFile):
 
         # Create the "Configurations/20-conan.conf"
         self._create_targets()
+
+        # Adjust runtime
+        if self._use_nmake:
+            self._replace_runtime_in_file(os.path.join(self.source_folder,
+                                                       "Configurations", "10-main.conf"))
+        # workaround for clang-cl not producing .pdb files
+        if self._is_clangcl:
+            save(self, os.path.join(self.source_folder, "ossl_static.pdb"), "")
 
     def config_options(self):
         try:
@@ -385,7 +391,7 @@ class OpenSSLConan(ConanFile):
             return "/etc/ssl"
         return os.path.join(self.package_folder or ".", "res")
 
-    def _get_configure_args(self):
+    def _get_configure_args(self,perl):
         openssldir = self.options.openssldir or self._get_default_openssl_dir()
         # FIXME: subsystem_path is going to be removed in develop and develop2
         #        conan.tools.microsoft.unix_path has to be used later
@@ -399,7 +405,7 @@ class OpenSSLConan(ConanFile):
             "--openssldir=\"%s\"" % openssldir,
             "no-unit-test",
             "no-threads" if self.options.no_threads else "threads",
-            "PERL=%s" % self._perl,
+            "PERL=%s" % perl,
             "no-tests",
             "--debug" if self.settings.build_type == "Debug" else "--release",
         ]
@@ -471,7 +477,6 @@ class OpenSSLConan(ConanFile):
             );
         """)
 
-
         toolchain = AutotoolsToolchain(self)
         deps = AutotoolsDeps(self)
         env = toolchain.environment().compose_env(deps.environment)
@@ -530,7 +535,7 @@ class OpenSSLConan(ConanFile):
             shared_target=shared_target,
             shared_extension=shared_extension,
             shared_cflag=shared_cflag,
-            lflags=" ".join(toolchain.ldflags)
+            lflags=toolchain.ldflags
         )
         self.output.info("using target: %s -> %s" % (self._target, self._ancestor_target))
         self.output.info(config)
@@ -548,33 +553,17 @@ class OpenSSLConan(ConanFile):
         self.run(" ".join(command))
 
     @property
-    def _perl(self):
-        if self.settings_build.os == "Windows" and not self.win_bash:
-            # enforce strawberry perl, otherwise wrong perl could be used (from Git bash, MSYS, etc.)
-            if "strawberryperl" in self.deps_cpp_info.deps:
-                return os.path.join(self.deps_cpp_info["strawberryperl"].rootpath, "bin", "perl.exe")
-            elif hasattr(self, "user_info_build") and "strawberryperl" in self.user_info_build:
-                return self.user_info_build["strawberryperl"].perl
-        return "perl"
-
-    @property
-    def _nmake_makefile(self):
+    def _make_nmake_makefile(self):
         return r"ms\ntdll.mak" if self.options.shared else r"ms\nt.mak"
+
+    def _configure(self):
+        data = json.loads(load(self, self._openssl_build_json_path))
+        args = " ".join(data["configure_args"])
+        with chdir(self, self.source_folder):
+            self.run("{perl} ./Configure {args}".format(perl=data["perl_exe"], args=args))
 
     def _make(self):
         with chdir(self, self.source_folder):
-            # workaround for clang-cl not producing .pdb files
-            if self._is_clangcl:
-                save(self, "ossl_static.pdb", "")
-
-            data = json.loads(load(self, self._openssl_build_json_path))
-            args = " ".join(data["configure_args"])
-
-            if self._use_nmake:
-                self._replace_runtime_in_file(os.path.join("Configurations", "10-main.conf"))
-
-            self.run("{perl} ./Configure {args}".format(perl=self._perl, args=args))
-
             self._run_make()
 
     def _make_install(self):
@@ -618,7 +607,8 @@ class OpenSSLConan(ConanFile):
             yield
 
     def build(self):
-       # with self._make_context():
+        self._configure()
+        # with self._make_context():
         self._make()
 
     @property

@@ -2,11 +2,13 @@ import org.yaml.snakeyaml.Yaml
 
 properties([
     parameters([
-        string(name: 'recipes', defaultValue: '', description: 'recipes, sepparated by commas that you want to regenerate. e.g. "zlib, openssl, cgal"')
+        string(name: 'recipes', defaultValue: '', description: 'recipes, sepparated by commas that you want to regenerate. e.g. "zlib,openssl,cgal"')
     ]),
 ]) 
 
 List<String> recipesToBuild = params.recipes.tokenize(',')
+
+recipesToBuild = recipesToBuild.collect { it.trim() }
 
 RAISE_HOOKS = true
 ART_URL = 'https://conanv2beta.jfrog.io/artifactory/api/conan/conan'
@@ -225,7 +227,7 @@ node('Linux') {
                 output = sh(script: 'git diff --name-only origin/master --diff-filter=AMR', returnStdout: true)
             }
             for (line in output.split('\n')) {
-                def matcher = (line =~ /^recipesToBuild\/([^\/]+)\//)
+                def matcher = (line =~ /^recipes\/([^\/]+)\//)
                 if (matcher) {
                     recipesToBuild.add(matcher[0][1] as String)
                 }

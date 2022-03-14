@@ -52,9 +52,9 @@ class ZlibConan(ConanFile):
             del self.options.fPIC
 
     def configure(self):
-        if self.options.shared:
-            del self.options.fPIC
         try:  # FIXME: This was not failing at 1.X
+            if self.options.shared:
+                del self.options.fPIC
             del self.settings.compiler.libcxx
             del self.settings.compiler.cppstd
         except Exception:

@@ -13,8 +13,7 @@ from conan.tools.env import Environment
 from conan.tools.files import save, get, load, chdir, replace_in_file, rename, copy
 from conan.tools.gnu import AutotoolsToolchain, AutotoolsDeps
 from conan.tools.layout import basic_layout
-# FIXME: subsystem_path won't exist
-from conan.tools.microsoft import subsystem_path, VCVars, is_msvc
+from conan.tools.microsoft import unix_path, VCVars, is_msvc
 
 required_conan_version = ">=1.43.0"
 
@@ -391,12 +390,10 @@ class OpenSSLConan(ConanFile):
             return "/etc/ssl"
         return os.path.join(self.package_folder or ".", "res")
 
-    def _get_configure_args(self,perl):
+    def _get_configure_args(self, perl):
         openssldir = self.options.openssldir or self._get_default_openssl_dir()
-        # FIXME: subsystem_path is going to be removed in develop and develop2
-        #        conan.tools.microsoft.unix_path has to be used later
-        prefix = subsystem_path(self.package_folder) if self.win_bash else (self.package_folder or self.build_folder)
-        openssldir = subsystem_path(openssldir) if self.win_bash else openssldir
+        prefix = unix_path(self, self.package_folder) if self.win_bash else (self.package_folder or self.build_folder)
+        openssldir = unix_path(self, openssldir) if self.win_bash else openssldir
         args = [
             '"%s"' % (self._target),
             "shared" if self.options.shared else "no-shared",
@@ -535,7 +532,7 @@ class OpenSSLConan(ConanFile):
             shared_target=shared_target,
             shared_extension=shared_extension,
             shared_cflag=shared_cflag,
-            lflags=toolchain.ldflags
+            lflags=" ".join(toolchain.ldflags)
         )
         self.output.info("using target: %s -> %s" % (self._target, self._ancestor_target))
         self.output.info(config)
@@ -624,7 +621,7 @@ class OpenSSLConan(ConanFile):
         if not make_program:
             raise Exception('could not find "make" executable. please set "tools.gnu:make_program" config')
         # FIXME: Not ready for the subsystem, unix_path to be used
-        make_program = subsystem_path(None, make_program)
+        make_program = unix_path(self, make_program)
         return make_program
 
     @property

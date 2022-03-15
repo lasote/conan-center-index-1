@@ -2,9 +2,9 @@ import org.yaml.snakeyaml.Yaml
 
 properties([
     parameters([
-        string(name: 'recipes', defaultValue: '', description: 'recipes, sepparated by commas that you want to regenerate. e.g. "zlib,openssl,cgal"')
+        string(name: 'recipes', defaultValue: '', description: 'recipes, separated by commas that you want to regenerate. e.g. "zlib,openssl,cgal"')
     ]),
-]) 
+])
 
 List<String> recipesToBuild = params.recipes.tokenize(',')
 
@@ -189,6 +189,9 @@ def createReference(Map ctxt, List referencesToBuild) {
                     }
                 }
             }
+        }
+        envInside(ctxt) {
+            ctxt.shFunction('conan remove "*" -f')
         }
 
     }

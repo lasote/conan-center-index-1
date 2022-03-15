@@ -169,12 +169,12 @@ class OpenSSLConan(ConanFile):
     def build_requirements(self):
         if self.settings_build.os == "Windows":
             if not self.win_bash:
-                self.build_requires("strawberryperl/5.30.0.1")
+                self.tool_requires("strawberryperl/5.30.0.1")
             if not self.options.no_asm and not which("nasm"):
-                self.build_requires("nasm/2.15.05")
+                self.tool_requires("nasm/2.15.05")
         if self.win_bash:
             if not self.conf.get("tools.microsoft.bash:path"):
-                self.build_requires("msys2/cci.latest")
+                self.tool_requires("msys2/cci.latest")
 
     def validate(self):
         if self.settings.os == "Emscripten":

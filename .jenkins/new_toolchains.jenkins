@@ -107,7 +107,7 @@ def envInside(Map ctxt, Closure closure) {
     String binPath = isUnix() ? "$venvDirectory/bin/" : "$venvDirectory\\Scripts\\"
     String conanHome = isUnix() ? "${pwd()}/.conan" : "${pwd()}\\.conan"
     String hookErrorLevel = RAISE_HOOKS ? '40' : '50'
-    withEnv(["PATH+EXTRA=${binPath}", "CONAN_HOME=${conanHome}", "CONAN_USER_HOME=${conanHome}", "CONAN_USER_HOME_SHORT=${conanHome}", "CONAN_HOOK_ERROR_LEVEL=${hookErrorLevel}"]) {
+    withEnv(["PATH+EXTRA=${binPath}", "CONAN_HOME=${conanHome}", "CONAN_USER_HOME=${conanHome}", "CONAN_USER_HOME_SHORT=${conanHome}", "CONAN_HOOK_ERROR_LEVEL=${hookErrorLevel}", "CONAN_REVISIONS_ENABLED=1"]) {
         // This doesn't work if running docker.inside (https://issues.jenkins.io/browse/JENKINS-49076)
         closure()
     }

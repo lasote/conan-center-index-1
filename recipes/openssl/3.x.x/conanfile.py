@@ -101,12 +101,12 @@ class OpenSSLConan(ConanFile):
         return os.path.join(self.generators_folder, "openssl_build.json")
 
     def generate(self):
+        perl = "perl"
         if self.settings_build.os == "Windows" and not self.win_bash:
             # enforce strawberry perl, otherwise wrong perl could be used (from Git bash, MSYS, etc.)
             if "strawberryperl" in self.dependencies.items():
                 perl = os.path.join(self.dependencies["strawberryperl"].bindirs[0], "perl.exe")
-            else:
-                perl = "perl"
+
         configure_args = self._get_configure_args(perl)
         build_data = {"configure_args": configure_args, "perl_exe": perl}
         contents = json.dumps(build_data)
@@ -392,7 +392,8 @@ class OpenSSLConan(ConanFile):
 
     def _get_configure_args(self, perl):
         openssldir = self.options.openssldir or self._get_default_openssl_dir()
-        prefix = unix_path(self, self.package_folder) if self.win_bash else (self.package_folder or self.build_folder)
+        dest_folder = self.package_folder or self.build_folder
+        prefix = unix_path(self, dest_folder) if self.win_bash else dest_folder
         openssldir = unix_path(self, openssldir) if self.win_bash else openssldir
         args = [
             '"%s"' % (self._target),
@@ -446,7 +447,7 @@ class OpenSSLConan(ConanFile):
                 '--with-zlib-include="%s"' % include_path,
                 '--with-zlib-lib="%s"' % lib_path
             ])
-        for option_name in self.options.possible_values.keys():
+        for option_name, value in self.options.items():
             if self.options.get_safe(option_name, False) and option_name not in ("shared", "fPIC", "openssldir", "capieng_dialog", "enable_capieng", "zlib", "no_fips"):
                 self.output.info(f"Activated option: {option_name}")
                 args.append(option_name.replace("_", "-"))
@@ -498,7 +499,9 @@ class OpenSSLConan(ConanFile):
         ranlib = 'ranlib => "%s",' % ranlib if ranlib else ""
         targets = "my %targets"
 
-        includes = ", ".join(['"%s"' % include for include in self.dependencies["zlib"].cpp_info.includedirs])
+        includes = ""
+        if not self.options.no_zlib:
+            includes = ", ".join(['"%s"' % include for include in self.dependencies["zlib"].cpp_info.includedirs])
         if self.settings.os == "Windows":
             includes = includes.replace("\\", "/")  # OpenSSL doesn't like backslashes
 

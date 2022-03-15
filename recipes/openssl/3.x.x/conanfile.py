@@ -620,8 +620,8 @@ class OpenSSLConan(ConanFile):
     def _make_program(self):
         if self._use_nmake:
             return "nmake"
-        make_program = self.conf.get("tools.gnu:make_program")
-        if not make_program:
+        make_program = self.conf.get("tools.gnu:make_program", default="make")
+        if not which("make"):
             raise Exception('could not find "make" executable. please set "tools.gnu:make_program" config')
         # FIXME: Not ready for the subsystem, unix_path to be used
         make_program = unix_path(self, make_program)

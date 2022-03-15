@@ -1,6 +1,9 @@
+import json
+
 from conan import ConanFile
 from conan.tools.cmake import cmake_layout, CMake, CMakeToolchain
 from conan.tools.build import cross_building
+from conan.tools.files import save, load
 import os
 
 
@@ -23,6 +26,8 @@ class TestPackageConan(ConanFile):
         # FIXME: smell of root package
         license_path = os.path.join(self.dependencies["openssl"].cpp_info.libdirs[0], "..", "licenses", "LICENSE.txt")
         assert os.path.exists(license_path)
+        # Store the option no_stdio
+        save(self, "custom.json", json.dumps({"no_stdio": str(self.dependencies["openssl"].options.no_stdio)}))
 
     def build(self):
         cmake = CMake(self)
@@ -34,8 +39,8 @@ class TestPackageConan(ConanFile):
             bin_path = os.path.join(self.cpp.build.bindirs[0], "digest")
             self.run(bin_path)
 
-            if not self.dependencies["openssl"].options.no_stdio:
-                self.run("openssl version")
+        if not json.loads(load(self, os.path.join(self.generators_folder, "custom.json")))["no_stdio"]:
+            self.run("openssl version", env="conanrun")
 
         for fn in ("libcrypto.pc", "libssl.pc", "openssl.pc",):
             assert os.path.isfile(os.path.join(self.generators_folder, fn))

@@ -65,9 +65,6 @@ LINUX_PROFILE = """\
     compiler.libcxx=libstdc++
     compiler.version=10
     build_type=Release
-    [options]
-    [tool_requires]
-    [env]
     """.stripIndent()
 
 MACOS_PROFILE = """\
@@ -78,12 +75,9 @@ MACOS_PROFILE = """\
     compiler.libcxx=libc++
     compiler.version=12.0
     build_type=Release
-    [options]
-    [tool_requires]
-    [env]
     """.stripIndent()
 
-WINDOWS_PROFILE = """\
+WINDOWS_PROFILE_v1 = """\
     [settings]
     os=Windows
     arch=x86_64
@@ -91,11 +85,26 @@ WINDOWS_PROFILE = """\
     compiler.runtime=MD
     compiler.version=15
     build_type=Release
-    [options]
-    [tool_requires]
-    [env]
     """.stripIndent()
 
+WINDOWS_PROFILE_v2 = """\
+    [settings]
+    os=Windows
+    arch=x86_64
+    compiler=msvc
+    compiler.version=191
+    compiler.runtime=dynamic
+    build_type=Release    
+    """.stripIndent()
+
+def getWindowsProfile(branchName) {
+    if (branchName.contains('1.X')) {
+        return WINDOWS_PROFILE_v1
+    }
+    else {
+        return WINDOWS_PROFILE_v2
+    }
+}
 
 @NonCPS
 static removeDuplicates(List list) {
@@ -309,7 +318,7 @@ node('Linux') {
                                                 shReturnCode: { data -> bat(script: data, returnStatus: true) },
                                                 isWindows: true,
                                                 isInsideDocker: false,
-                                                profileHost: WINDOWS_PROFILE,
+                                                profileHost: getWindowsProfile(branch.name),
                                                 branch: branch,
                                                 upload: shouldUpload(branch.name)],
                                                 toBuild)

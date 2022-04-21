@@ -3,6 +3,7 @@ from conan.tools.scm import Version
 from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
 from conan.tools.files import get, patch, rename, chdir, load, save, copy
 from conan.tools.files import replace_in_file
+from conan.tools.microsoft import is_msvc
 import os
 
 
@@ -33,15 +34,11 @@ class ZlibConan(ConanFile):
         tc.variables["SKIP_INSTALL_LIBRARIES"] = False
         tc.variables["SKIP_INSTALL_HEADERS"] = False
         tc.variables["SKIP_INSTALL_FILES"] = True
-        tc.generate()        
+        tc.generate()
 
     def layout(self):
         cmake_layout(self)
         # self.folders.source = "source_subfolder"
-
-    @property
-    def _is_msvc(self):
-        return str(self.settings.compiler) in ["Visual Studio", "msvc"]
 
     def export_sources(self):
         for _patch in self.conan_data.get("patches", {}).get(str(self.version), []):
@@ -67,9 +64,6 @@ class ZlibConan(ConanFile):
         for _patch in self.conan_data.get("patches", {}).get(str(self.version), []):
             # !!!! This is not easy to understand, the patches are un the base source folder, not an easy access. Here the current dir is source_folder.
             patch(self, patch_file=os.path.join(self.folders.base_source, _patch["patch_file"]))
-
-        # https://github.com/madler/zlib/issues/268
-        replace_in_file(self, os.path.join(self.source_folder, 'gzguts.h'), '#if defined(_WIN32) || defined(__CYGWIN__)', '#if defined(_WIN32) || defined(__MINGW32__)')
 
         is_apple_clang12 = self.settings.compiler == "apple-clang" and Version(str(self.settings.compiler.version)) >= "12.0"
         if not is_apple_clang12:
@@ -97,11 +91,11 @@ class ZlibConan(ConanFile):
             suffix = "d" if self.settings.build_type == "Debug" else ""
 
             if self.options.shared:
-                if self._is_msvc and suffix:
+                if is_msvc(self) and suffix:
                     current_lib = os.path.join(lib_path, "zlib%s.lib" % suffix)
                     rename(self, current_lib, os.path.join(lib_path, "zlib.lib"))
             else:
-                if self._is_msvc:
+                if is_msvc(self):
                     current_lib = os.path.join(lib_path, "zlibstatic%s.lib" % suffix)
                     rename(self, current_lib, os.path.join(lib_path, "zlib.lib"))
                 elif self.settings.compiler in ("clang", "gcc", ):

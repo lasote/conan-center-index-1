@@ -128,7 +128,7 @@ class GTestConan(ConanFile):
     def source(self):
         get(self, **self.conan_data["sources"][self.version], strip_root=True)
         for the_patch in self.conan_data.get("patches", {}).get(self.version, []):
-            patch(**the_patch)
+            patch(self, **the_patch)
         # No warnings as errors
         internal_utils = os.path.join(self.source_folder, "googletest", "cmake",
                                       "internal_utils.cmake")

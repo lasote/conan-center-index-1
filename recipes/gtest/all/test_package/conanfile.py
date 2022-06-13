@@ -28,8 +28,6 @@ class TestPackageConan(ConanFile):
         cmake.build()
 
     def test(self):
-        cpp_info = self.dependencies["gtest"].cpp_info
-        assert os.path.isfile(os.path.join(cpp_info.libdirs[0], "..", "licenses", "LICENSE"))
         if not cross_building(self):
             bin_path = os.path.join(self.cpp.build.bindirs[0], "test_package")
             self.run(bin_path)

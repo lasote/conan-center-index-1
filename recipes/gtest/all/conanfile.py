@@ -175,7 +175,7 @@ class GTestConan(ConanFile):
                 self.cpp_info.components["libgtest"].defines.append("GTEST_HAS_TR1_TUPLE=0")
 
         # gtest_main
-        if not self.options.no_main:
+        if not self.options.get_safe("no_main"):
             self.cpp_info.components["gtest_main"].set_property("cmake_target_name", "GTest::gtest_main")
             self.cpp_info.components["gtest_main"].set_property("cmake_target_aliases", ["GTest::Main"])
             self.cpp_info.components["gtest_main"].set_property("pkg_config_name", "gtest_main")
@@ -194,7 +194,7 @@ class GTestConan(ConanFile):
             self.cpp_info.components["gmock"].requires = ["libgtest"]
 
             # gmock_main
-            if not self.options.no_main:
+            if not self.options.get_safe("no_main"):
                 self.cpp_info.components["gmock_main"].set_property("cmake_target_name", "GTest::gmock_main")
                 self.cpp_info.components["gmock_main"].set_property("pkg_config_name", "gmock_main")
                 self.cpp_info.components["gmock_main"].libs = ["gmock_main{}".format(self._postfix)]

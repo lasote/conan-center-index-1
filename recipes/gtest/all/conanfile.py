@@ -84,6 +84,8 @@ class GTestConan(ConanFile):
 
     def export_sources(self):
         copy(self, "CMakeLists.txt", self.recipe_folder, self.export_sources_folder)
+        for the_patch in self.conan_data.get("patches", {}).get(self.version, []):
+            copy(self, the_patch["patch_file"], self.recipe_folder, self.export_sources_folder)
 
     def config_options(self):
         if self.settings.os == "Windows":

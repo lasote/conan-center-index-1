@@ -169,8 +169,8 @@ class GTestConan(ConanFile):
         if self.options.shared:
             self.cpp_info.components["libgtest"].defines.append("GTEST_LINKED_AS_SHARED_LIBRARY=1")
         if self.version == "1.8.1":
-            if (self.settings.get_safe("compiler") == "Visual Studio" and self.settings.compiler.version >= "15") or \
-               (str(self.settings.compiler) == "msvc" and self.settings.compiler.version >= "191"):
+            if (self.settings.get_safe("compiler") == "Visual Studio" and str(self.settings.compiler.version) >= "15") or \
+               (str(self.settings.compiler) == "msvc" and str(self.settings.compiler.version) >= "191"):
                 self.cpp_info.components["libgtest"].defines.append("GTEST_LANG_CXX11=1")
                 self.cpp_info.components["libgtest"].defines.append("GTEST_HAS_TR1_TUPLE=0")
 

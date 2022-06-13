@@ -3,7 +3,7 @@ import os
 from conan import ConanFile
 from conan.tools.build import check_min_cppstd
 from conan.tools.cmake import CMake, cmake_layout, CMakeToolchain
-from conan.tools.files import copy, get, patch, replace_in_file, rmdir
+from conan.tools.files import copy, get, apply_conandata_patches, replace_in_file, rmdir
 from conan.tools.microsoft import msvc_runtime_flag
 from conans.errors import ConanInvalidConfiguration
 
@@ -84,8 +84,6 @@ class GTestConan(ConanFile):
 
     def export_sources(self):
         copy(self, "CMakeLists.txt", self.recipe_folder, self.export_sources_folder)
-        for patch in self.conan_data.get("patches", {}).get(self.version, []):
-            copy(self, patch["patch_file"], self.recipe_folder, self.export_sources_folder)
 
     def config_options(self):
         if self.settings.os == "Windows":
@@ -127,8 +125,7 @@ class GTestConan(ConanFile):
 
     def source(self):
         get(self, **self.conan_data["sources"][self.version], strip_root=True)
-        for the_patch in self.conan_data.get("patches", {}).get(self.version, []):
-            patch(self, **the_patch)
+        apply_conandata_patches(self)
         # No warnings as errors
         internal_utils = os.path.join(self.source_folder, "googletest", "cmake",
                                       "internal_utils.cmake")

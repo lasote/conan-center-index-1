@@ -152,6 +152,9 @@ class GTestConan(ConanFile):
         return self.options.debug_postfix if self.settings.build_type == "Debug" else ""
 
     def package_info(self):
+        # We want to check in the test_package that the license is there
+        self.cpp_info.set_property("license_path", os.path.join(self.package_folder, "licenses", "LICENSE"))
+
         self.cpp_info.set_property("cmake_find_mode", "both")
         self.cpp_info.set_property("cmake_file_name", "GTest")
 

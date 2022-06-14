@@ -1,20 +1,40 @@
-from conans import ConanFile, CMake, tools
+from conan import ConanFile
+from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
+from conan.tools.build import cross_building
+from conan.tools.files import save, load
 import os
 
 
 class TestPackageConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
-    generators = "cmake", "cmake_find_package"
+    generators = "CMakeDeps"
+
+    def layout(self):
+        cmake_layout(self)
+
+    def requirements(self):
+        self.requires(self.tested_reference_str)
+
+    def generate(self):
+        toolchain = CMakeToolchain(self)
+        toolchain.variables['WITH_GMOCK'] = self.dependencies['gtest'].options["build_gmock"]
+        toolchain.variables['WITH_MAIN'] = not self.dependencies['gtest'].options["no_main"]
+        toolchain.generate()
+
+        # Access to dependencies should be done in generate
+        license_path = self.dependencies["gtest"].cpp_info.get_property("license_path")
+        save(self, os.path.join(self.generators_folder, "license_path.txt"), license_path)
 
     def build(self):
         cmake = CMake(self)
-        cmake.definitions['WITH_GMOCK'] = self.options['gtest'].build_gmock
-        cmake.definitions['WITH_MAIN'] = not self.options['gtest'].no_main
+
         cmake.configure()
         cmake.build()
 
     def test(self):
-        assert os.path.isfile(os.path.join(self.deps_cpp_info["gtest"].rootpath, "licenses", "LICENSE"))
-        if not tools.cross_building(self):
-            bin_path = os.path.join("bin", "test_package")
-            self.run(bin_path, run_environment=True)
+        license_path = load(self, os.path.join(self.generators_folder, "license_path.txt"))
+        assert os.path.isfile(license_path)
+
+        if not cross_building(self):
+            bin_path = os.path.join(self.cpp.build.bindirs[0], "test_package")
+            self.run(bin_path)

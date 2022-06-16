@@ -27,7 +27,7 @@ class NASMConan(ConanFile):
 
     def generate(self):
         at_toolchain = AutotoolsToolchain(self)
-        if self.settings.compiler == "Visual Studio":
+        if self.settings.get_safe("compiler") in ["Visual Studio", "msvc"]:
             VCVars(self).generate()
             at_toolchain.configure_args.append("-nologo")
         if self.settings.arch == "x86":
@@ -73,11 +73,12 @@ class NASMConan(ConanFile):
             # FIXME: Revisit after https://github.com/conan-io/conan/issues/9069, using new Autotools integration
             if str(self.version).startswith("2.13"):
                 replace_in_file(self, "Makefile", "$(CC) $(LDFLAGS) -o", "$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o")
+                replace_in_file(self, "Makefile", "$(INSTALLROOT)", "$(DESTDIR)")
             autotools.make()
 
     def package(self):
         copy(self, "LICENSE", self.source_folder, os.path.join(self.package_folder, "licenses"))
-        if self.settings.compiler == "Visual Studio":
+        if self.settings.get_safe("compiler") in ["Visual Studio", "msvc"]:
             copy(self, "*.exe", self.source_folder, os.path.join(self.package_folder, "bin"), keep_path=False)
         else:
             autotools = Autotools(self)

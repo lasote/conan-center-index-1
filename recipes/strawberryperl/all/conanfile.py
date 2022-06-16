@@ -44,4 +44,4 @@ class StrawberryperlConan(ConanFile):
         bin_path = os.path.join(self.package_folder, "bin")
         self.output.info("Appending PATH environment variable: %s" % bin_path)
         self.buildenv_info.prepend_path("PATH", bin_path)
-        self.user_info.perl = os.path.join(bin_path, "perl.exe").replace("\\", "/")
+

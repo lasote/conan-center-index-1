@@ -5,8 +5,6 @@ from conan import ConanFile
 from conan.tools.scm import Version
 from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
 from conan.tools.files import get, copy, apply_conandata_patches
-from conan.tools.microsoft.visual import is_msvc, msvc_runtime_flag
-from conan.errors import ConanInvalidConfiguration
 
 required_conan_version = ">=1.43.0"
 
@@ -43,12 +41,6 @@ class FmtConan(ConanFile):
     def generate(self):
         if not self.options.header_only:
             tc = CMakeToolchain(self)
-            tc.variables["FMT_DOC"] = False
-            tc.variables["FMT_TEST"] = False
-            tc.variables["FMT_INSTALL"] = True
-            tc.variables["FMT_LIB_DIR"] = "lib"
-            if self._has_with_os_api_option:
-                tc.variables["FMT_OS"] = self.options.with_os_api
             tc.generate()  
 
     def layout(self):
@@ -73,14 +65,8 @@ class FmtConan(ConanFile):
         except Exception:
             pass
 
-    def validate(self):
-        if self.options.get_safe("shared") and is_msvc(self) and "MT" in msvc_runtime_flag(self):
-            raise ConanInvalidConfiguration(
-                "Visual Studio build for shared library with MT runtime is not supported"
-            )
-
     def package_id(self):
-        if self.options.header_only:
+        if self.info.options.header_only:
             self.info.header_only()
         else:
             del self.info.options.with_fmt_alias
@@ -92,7 +78,15 @@ class FmtConan(ConanFile):
         apply_conandata_patches(self)
         if not self.options.header_only:
             cmake = CMake(self)
-            cmake.configure()
+            cache_entries = {
+                "FMT_DOC": "False",
+                "FMT_TEST": "False",
+                "FMT_INSTALL": "True",
+                "FMT_LIB_DIR": "lib"
+            }
+            if self._has_with_os_api_option:
+                cache_entries["FMT_OS"] = self.options.with_os_api
+            cmake.configure(variables=cache_entries)
             cmake.build()
 
     @staticmethod

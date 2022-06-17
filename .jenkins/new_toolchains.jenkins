@@ -56,25 +56,25 @@ List<Map> getBranchesInstalls() {
     return branches
 }
 
-LINUX_CONTAINER = 'conanio/gcc10'
+LINUX_CONTAINER = 'conanio/gcc9'
 LINUX_PROFILE = """\
     [settings]
-    os=Linux
     arch=x86_64
-    compiler=gcc
-    compiler.libcxx=libstdc++
-    compiler.version=10
     build_type=Release
+    compiler=gcc
+    compiler.libcxx=libstdc++11
+    compiler.version=9
+    os=Linux
     """.stripIndent()
 
 MACOS_PROFILE = """\
     [settings]
-    os=Macos
     arch=x86_64
+    build_type=Release
     compiler=apple-clang
     compiler.libcxx=libc++
-    compiler.version=12.0
-    build_type=Release
+    compiler.version=13
+    os=Macos
     """.stripIndent()
 
 WINDOWS_PROFILE_v1 = """\
@@ -89,12 +89,13 @@ WINDOWS_PROFILE_v1 = """\
 
 WINDOWS_PROFILE_v2 = """\
     [settings]
-    os=Windows
     arch=x86_64
+    build_type=Release
     compiler=msvc
-    compiler.version=191
     compiler.runtime=dynamic
-    build_type=Release    
+    compiler.runtime_type=Release
+    compiler.version=191
+    os=Windows
     """.stripIndent()
 
 def getWindowsProfile(branchName) {

@@ -52,7 +52,7 @@ class GTestConan(ConanFile):
 
     @property
     def _is_msvc(self):
-        return str(self.settings.compiler) in ["Visual Studio", "msvc"]
+        return str(self.info.settings.compiler) in ["Visual Studio", "msvc"]
 
     @property
     def _minimum_cpp_standard(self):
@@ -98,13 +98,13 @@ class GTestConan(ConanFile):
             del self.options.fPIC
 
     def validate(self):
-        if self.options.shared and self._is_msvc and "MT" in msvc_runtime_flag(self):
+        if self.info.options.shared and self._is_msvc and "MT" in msvc_runtime_flag(self):
             raise ConanInvalidConfiguration(
                 "gtest:shared=True with compiler=\"Visual Studio\" is not "
                 "compatible with compiler.runtime=MT/MTd"
             )
 
-        if self.settings.compiler.get_safe("cppstd"):
+        if self.info.settings.compiler.cppstd:
             check_min_cppstd(self, self._minimum_cpp_standard)
 
         def loose_lt_semver(v1, v2):
@@ -113,12 +113,12 @@ class GTestConan(ConanFile):
             min_length = min(len(lv1), len(lv2))
             return lv1[:min_length] < lv2[:min_length]
 
-        min_version = self._minimum_compilers_version.get(str(self.settings.compiler))
-        if min_version and loose_lt_semver(str(self.settings.compiler.version), min_version):
+        min_version = self._minimum_compilers_version.get(str(self.info.settings.compiler))
+        if min_version and loose_lt_semver(str(self.info.settings.compiler.version), min_version):
             raise ConanInvalidConfiguration(
                 "{0} requires {1} {2}. The current compiler is {1} {3}.".format(
-                    self.name, self.settings.compiler,
-                    min_version, self.settings.compiler.version
+                    self.name, self.info.settings.compiler,
+                    min_version, self.info.settings.compiler.version
                 )
             )
 

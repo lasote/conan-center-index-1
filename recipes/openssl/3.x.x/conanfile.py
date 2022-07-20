@@ -177,8 +177,8 @@ class OpenSSLConan(ConanFile):
                 self.tool_requires("msys2/cci.latest")
 
     def validate(self):
-        if self.settings.os == "Emscripten":
-            if not all((self.options.no_asm, self.options.no_threads, self.options.no_stdio)):
+        if self.info.settings.os == "Emscripten":
+            if not all((self.info.options.no_asm, self.info.options.no_threads, self.info.options.no_stdio)):
                 raise ConanInvalidConfiguration("os=Emscripten requires openssl:{no_asm,no_threads,no_stdio}=True")
 
     @property

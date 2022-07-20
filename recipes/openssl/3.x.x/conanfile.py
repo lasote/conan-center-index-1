@@ -725,10 +725,11 @@ class OpenSSLConan(ConanFile):
         self.cpp_info.set_property("cmake_file_name", "OpenSSL")
         self.cpp_info.set_property("cmake_find_mode", "both")
         self.cpp_info.set_property("pkg_config_name", "openssl")
+        self.cpp_info.set_property("cmake_build_modules", [self._module_file_rel_path])
+
         self.cpp_info.components["ssl"].builddirs.append(self._module_subfolder)
-        self.cpp_info.components["ssl"].set_property("cmake_build_modules", [self._module_file_rel_path])
         self.cpp_info.components["crypto"].builddirs.append(self._module_subfolder)
-        self.cpp_info.components["crypto"].set_property("cmake_build_modules", [self._module_file_rel_path])
+
         # The components don't have default directories for anything, has to be declared
         self.cpp_info.components["ssl"].libdirs = ["lib"]
         self.cpp_info.components["crypto"].libdirs = ["lib"]

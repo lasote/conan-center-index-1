@@ -494,7 +494,7 @@ class OpenSSLConan(ConanFile):
         cc = 'cc => "%s",' % cc if cc else ""
         cxx = 'cxx => "%s",' % cxx if cxx else ""
         ar = 'ar => "%s",' % ar if ar else ""
-        defines = " ".join(toolchain.defines)
+        defines = " ".join(toolchain.defines) if toolchain.defines else ""
         defines = 'defines => add("%s"),' % defines if defines else ""
         ranlib = 'ranlib => "%s",' % ranlib if ranlib else ""
         targets = "my %targets"
